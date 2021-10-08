@@ -79,9 +79,10 @@ def get_activity_from_gitlab(projects, start, end):
             a.items.sort()
             activities.append(a)
       else:
-        print("action : " + item["action_name"])
-        print("projet : " + projects[item['project_id']])
-        print(item)
+        print()
+        #print("projet : " + projects[item['project_id']])
+        print(item['target_type'] +  " action : " + item["action_name"] + " : " + projects[item['project_id']] + " vers " + item['target_title'])
+       # print(item)
 
   
   return activities
