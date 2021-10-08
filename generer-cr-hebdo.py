@@ -23,7 +23,7 @@ class Activity:
   items = []
 
   def __str__(self):
-    return """<p><span class="activity">[%s]</span><ul>%s</ul></p><p><b>Temps passé : xx</b></p>""" % ( self.name,  "\n".join(map(Activity.item_to_html, self.items)))
+    return """<p><span class="activity">[%s]</span><ul>%s</ul></p><div class="timeleft">Temps passé : xx</div>""" % ( self.name,  "\n".join(map(Activity.item_to_html, self.items)))
 
   def item_to_html(item):
     return "<li>%s</li>" % item
@@ -36,11 +36,11 @@ def get_project_from_gitlab(start):
   with urllib.request.urlopen(strurl) as url:
     print("request projects to %s" % strurl)
     data = json.loads(url.read().decode())
-    print("json result =" )
+    #print("json result =" )
     for p in data:
       projects[p['id']] = p['name']
     
-    print(projects)
+    #print(projects)
   
   return projects
 
@@ -57,7 +57,7 @@ def get_activity_from_gitlab(projects, start, end):
     print("request activity to %s" % strurl)
     data = json.loads(url.read().decode())
     for item in data:
-      if item["action_name"] == "pushed to":
+      if item["action_name"] == "pushed to" or item["action_name"] == "pushed new":
         pd = item["push_data"]
         project_name = projects[item['project_id']]
         name = pd["ref"].replace("feature/", "").upper()
@@ -78,6 +78,10 @@ def get_activity_from_gitlab(projects, start, end):
           if mustappend:
             a.items.sort()
             activities.append(a)
+      else:
+        print("action : " + item["action_name"])
+        print("projet : " + projects[item['project_id']])
+        print(item)
 
   
   return activities
@@ -110,6 +114,7 @@ def generate_report():
   start = start_of_curweek_for_gitlab.strftime('%Y-%m-%d')
   end = end_of_curweek.strftime('%Y-%m-%d')
 
+  filedata = filedata.replace('{{whois}}', WHOIS)
   filedata = filedata.replace('{{start_semaine}}', start_semaine)
   filedata = filedata.replace('{{end_semaine}}', end_semaine)
   filedata = filedata.replace('{{idx_semaine}}', nbweek)

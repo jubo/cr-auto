@@ -4,10 +4,12 @@
             body {
                 font-family: Arial, Helvetica, sans-serif;
                 font-size: 13px;
+                width: 600px;
             }
             h3 {
-                font-size: 22px;
+                font-size: 20px;
                 margin:0;
+                text-align: center;
 
             }
             .activity{
@@ -18,15 +20,13 @@
             .conges{
                 padding:8px;
                 margin:10px;
+                margin-top: 20px;
+                margin-bottom: 20px;
                 font-style: italic;
                 color:rgb(113, 19, 126);
-
-
                 background-color: rgb(251, 219, 255);
-                
-                
                 border:solid 1px rgb(113, 19, 126);
-                width:250px;
+                width:300px;
                 font-size:13px;
             }
             .conges div{ 
@@ -49,13 +49,20 @@
                 font-style: italic;
                 color:#777;
                 font-size:16px;
-                margin-left:120px;
-                margin-top:5px;
+                text-align: center;
+                margin-top:2px;
+                margin-bottom:10px;
+            }
+            .timeleft {
+                width:100%;
+                font-weight: bold;
+                text-align: right;
+                font-size: 12px !important;
             }
         </style>
     </head>
     <body>
-        <h3>JBOUCHER - CR Hebdomadaire MIIST semaine {{idx_semaine}} </h3>
+        <h3>{{whois}} - CR Hebdomadaire MIIST semaine {{idx_semaine}} </h3>
         <div class="periode-cr">Du {{start_semaine}} au {{end_semaine}} </div>
         <div class="conges">
             <div>Congés :</div>
