@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <style>
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 13px;
+            }
+            h3 {
+                font-size: 22px;
+                margin:0;
+
+            }
+            .activity{
+                color:blue;
+                font-size:15px;
+                font-weight:bold;
+            }
+            .conges{
+                padding:8px;
+                margin:10px;
+                font-style: italic;
+                color:rgb(113, 19, 126);
+
+
+                background-color: rgb(251, 219, 255);
+                
+                
+                border:solid 1px rgb(113, 19, 126);
+                width:250px;
+                font-size:13px;
+            }
+            .conges div{ 
+                font-weight:bold;
+                font-size:15px;
+                margin:0px;
+                
+            }
+            .conges ul{
+                margin:0px;
+            }
+            .taches{
+               
+            }
+            .taches div{ 
+                font-weight:bold;
+                font-size:17px;
+            }
+            .periode-cr{
+                font-style: italic;
+                color:#777;
+                font-size:16px;
+                margin-left:120px;
+                margin-top:5px;
+            }
+        </style>
+    </head>
+    <body>
+        <h3>JBOUCHER - CR Hebdomadaire MIIST semaine {{idx_semaine}} </h3>
+        <div class="periode-cr">Du {{start_semaine}} au {{end_semaine}} </div>
+        <div class="conges">
+            <div>Congés :</div>
+            <ul>
+                <li>Le 5/10/2021</li>
+                <li>Fin d'année : du 23/12 inclus au 2/1 inclus</li>
+            </ul>
+        </div>
+        <div class="taches">
+            <div>Tâches</div>
+            {{activity}}
+        </div>
+    </body>
+</html>
