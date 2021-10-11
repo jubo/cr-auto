@@ -63,22 +63,25 @@ def get_activity_from_gitlab(start, end):
       if item["action_name"] == "pushed to" or item["action_name"] == "pushed new":
         pd = item["push_data"]        
         name = pd["ref"].replace("feature/", "").upper()
-        if(name != "DEV" and name != "MASTER"):
-          a = get_activity_from_name(name, activities)
-          mustappend = False
-          if a is None:
-            mustappend = True
-            a = Activity()
-            a.name = name
-            
-          commit_title = pd["commit_title"].capitalize()
-          if("Merge remote-tracking branch" not in commit_title):
-            item = "(%s) - %s" % (project_name, commit_title)
+        name = name.replace("MASTER", "Production").upper()
+        name = name.replace("DEV", "Intégration").upper()
+        a = get_activity_from_name(name, activities)
+        mustappend = False
+
+        if a is None:
+          mustappend = True
+          a = Activity()
+          a.name = name
+          
+        commit_title = pd["commit_title"].capitalize()
+        if("Merge remote-tracking branch" not in commit_title):
+          item = "(%s) - %s" % (project_name, commit_title)
+          if item not in a.items:
             a.items.append(item)
 
-          if mustappend:
-            a.items.sort()
-            activities.append(a)
+        if mustappend:
+          a.items.sort()
+          activities.append(a)
       else:
         print()
         #print("projet : " + projects[item['project_id']])
@@ -100,6 +103,7 @@ def generate_report(curdate = None):
     curdate = datetime.date.today()
   
   nbweek = curdate.strftime("%V")
+  year = curdate.strftime("%Y")
 
   start_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()))
   start_of_curweek_for_gitlab = curdate + datetime.timedelta(days=-(curdate.weekday()+1))
@@ -108,7 +112,7 @@ def generate_report(curdate = None):
   name = "%s - CR Hebdomadaire MIIST semaine %s" % (WHOIS, nbweek)
   
   original="cr-template.html"
-  target="cr-miist-%s-%s.html" % (WHOIS, nbweek)
+  target="crs/cr-miist-%s-%s-%s.html" % (year, WHOIS, nbweek)
 
   if os.path.isfile(target):
     return None, None
@@ -198,7 +202,6 @@ def upload_to_gdrive(name, target):
     print('Upload to GDrive impossible. A verifier !')
 
 if __name__ == '__main__':
-    
     allreportofyear = int(datetime.date.today().strftime("%V"))
     for i in range(allreportofyear):
       lastweek = datetime.date.today() - datetime.timedelta(weeks=i)
