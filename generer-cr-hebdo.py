@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+# script de generation rapport hebdo HTML via extraciton historique des commits git
+
 import shutil
 import os.path
 import datetime
@@ -34,8 +36,9 @@ class Activity:
 projects = {}
 
 def get_project_from_gitlab_id(id):
-  
-
+  """
+  Récupérer le nom du projet à partir de son id
+  """
   if not id in projects.keys():
     strurl = URL_PROJECTS_GITLAB_BY_ID.replace("{{id}}", str(id))
     with urllib.request.urlopen(strurl) as url:
@@ -47,19 +50,29 @@ def get_project_from_gitlab_id(id):
   return projects[id]
 
 def get_activity_from_name(name, arr):
+  """
+  Récupérer l'activité dans un tableau a partir de son nom
+  """
   for a in arr:
     if a.name == name:
       return a
   return None
 
 def get_activity_from_gitlab(start, end):
+  """
+  Générer une liste d'activité entre deux dates
+  """
   activities = []
+
+  # appel api gitlab pour avoir la liste des events
   strurl = URL_ACTIVITY_GITLAB+"&after="+start + "&before=" + end
   with urllib.request.urlopen(strurl) as url:
     print("request activity to %s" % strurl)
     data = json.loads(url.read().decode())
     for item in data:
       project_name = get_project_from_gitlab_id(item['project_id'])
+
+      # type d'actions : pushed to et pushed new
       if item["action_name"] == "pushed to" or item["action_name"] == "pushed new":
         pd = item["push_data"]        
         name = pd["ref"].replace("feature/", "").upper()
@@ -82,15 +95,14 @@ def get_activity_from_gitlab(start, end):
         if mustappend:
           a.items.sort()
           activities.append(a)
+      # TODO : gérer les merge request et faire une section dédiée
       else:
-        print()
-        #print("projet : " + projects[item['project_id']])
         try:
           print(item['target_type'] +  " action : " + item["action_name"] + " : " + projects[item['project_id']] + " vers " + item['target_title'])
         except:
           print("Oups, erreur pour print")
           print(item)
-       # print(item)
+       
 
   
   return activities
@@ -98,6 +110,7 @@ def get_activity_from_gitlab(start, end):
 def generate_report(curdate = None):
   """
   Genere un rapport html de l'activité git selon des conventions miist (branche feature/xxxx et commits.)
+  Renvoie None, None si le fichier de rapport existe déjà
   """
   if(not curdate or curdate is None):
     curdate = datetime.date.today()
@@ -114,9 +127,14 @@ def generate_report(curdate = None):
   original="cr-template.html"
   target="crs/cr-miist-%s-%s-%s.html" % (year, WHOIS, nbweek)
 
+  if os.path.isdir("crs"):
+    os.mkdir("crs")
+
+  # cas des fichiers existants on ne fait rien
   if os.path.isfile(target):
     return None, None
 
+  # copie du template
   shutil.copyfile(original, target)    
 
   # Read in the file
@@ -130,6 +148,7 @@ def generate_report(curdate = None):
   start = start_of_curweek_for_gitlab.strftime('%Y-%m-%d')
   end = end_of_curweek.strftime('%Y-%m-%d')
 
+  # du templatage de haute voltige...
   filedata = filedata.replace('{{whois}}', WHOIS)
   filedata = filedata.replace('{{start_semaine}}', start_semaine)
   filedata = filedata.replace('{{end_semaine}}', end_semaine)
@@ -139,7 +158,7 @@ def generate_report(curdate = None):
 
   filedata = filedata.replace('{{activity}}', "\n".join(map(str, activities)))
 
-  # Write the file out again
+  # on recopie le résultat avec les substitutions dans le fichier cible. 
   with open(target, 'w') as file:
     file.write(filedata)    
 
@@ -148,6 +167,9 @@ def generate_report(curdate = None):
 
 
 def upload_to_gdrive(name, target):
+  """
+  Envoi du fichier sur GDrive pour mémoire...
+  """
   print("Nom fichier local : %s, target gdrive : %s" % (target, name))
   try:
     from googleapiclient.discovery import build
