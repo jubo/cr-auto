@@ -127,7 +127,7 @@ def generate_report(curdate = None):
   original="cr-template.html"
   target="crs/cr-miist-%s-%s-%s.html" % (year, WHOIS, nbweek)
 
-  if os.path.isdir("crs"):
+  if not os.path.isdir("crs"):
     os.mkdir("crs")
 
   # cas des fichiers existants on ne fait rien
