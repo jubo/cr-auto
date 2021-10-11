@@ -11,6 +11,7 @@ locale.setlocale(locale.LC_TIME,'')
 
 PRIVATE_KEY_GITLAB_API = os.environ['PRIVATE_KEY_GITLAB_API']
 URL_PROJECTS_GITLAB = "https://git.miist.fr/api/v4/projects?private_token=%s" % PRIVATE_KEY_GITLAB_API
+URL_PROJECTS_GITLAB_BY_ID = "https://git.miist.fr/api/v4/projects/{{id}}?private_token=" + PRIVATE_KEY_GITLAB_API
 URL_ACTIVITY_GITLAB = "https://git.miist.fr/api/v4/events?private_token=%s" % PRIVATE_KEY_GITLAB_API
 WHOIS = "JBOUCHER"
 
@@ -18,9 +19,10 @@ class Activity:
   """
   Classe activité dans gitlab
   """
-  project_name=""
-  name = ""
-  items = []
+  def __init__(self):
+    self.project_name=""
+    self.name = ""
+    self.items = []
 
   def __str__(self):
     return """<p><span class="activity">[%s]</span><ul>%s</ul></p><div class="timeleft">Temps passé : xx</div>""" % ( self.name,  "\n".join(map(Activity.item_to_html, self.items)))
@@ -28,21 +30,21 @@ class Activity:
   def item_to_html(item):
     return "<li>%s</li>" % item
   
+# pas bien, global var... mais bon ça fait un petit cache :) 
+projects = {}
 
-def get_project_from_gitlab(start):
-  projects = {}
-
-  strurl = URL_PROJECTS_GITLAB+"&last_activity_after=="+start
-  with urllib.request.urlopen(strurl) as url:
-    print("request projects to %s" % strurl)
-    data = json.loads(url.read().decode())
-    #print("json result =" )
-    for p in data:
-      projects[p['id']] = p['name']
-    
-    #print(projects)
+def get_project_from_gitlab_id(id):
   
-  return projects
+
+  if not id in projects.keys():
+    strurl = URL_PROJECTS_GITLAB_BY_ID.replace("{{id}}", str(id))
+    with urllib.request.urlopen(strurl) as url:
+      print("request projects to %s" % strurl)
+      data = json.loads(url.read().decode())
+      projects[id] = data['name']
+    
+    
+  return projects[id]
 
 def get_activity_from_name(name, arr):
   for a in arr:
@@ -50,18 +52,17 @@ def get_activity_from_name(name, arr):
       return a
   return None
 
-def get_activity_from_gitlab(projects, start, end):
+def get_activity_from_gitlab(start, end):
   activities = []
-  strurl = URL_ACTIVITY_GITLAB+"&after="+start
+  strurl = URL_ACTIVITY_GITLAB+"&after="+start + "&before=" + end
   with urllib.request.urlopen(strurl) as url:
     print("request activity to %s" % strurl)
     data = json.loads(url.read().decode())
     for item in data:
+      project_name = get_project_from_gitlab_id(item['project_id'])
       if item["action_name"] == "pushed to" or item["action_name"] == "pushed new":
-        pd = item["push_data"]
-        project_name = projects[item['project_id']]
+        pd = item["push_data"]        
         name = pd["ref"].replace("feature/", "").upper()
-
         if(name != "DEV" and name != "MASTER"):
           a = get_activity_from_name(name, activities)
           mustappend = False
@@ -81,27 +82,37 @@ def get_activity_from_gitlab(projects, start, end):
       else:
         print()
         #print("projet : " + projects[item['project_id']])
-        print(item['target_type'] +  " action : " + item["action_name"] + " : " + projects[item['project_id']] + " vers " + item['target_title'])
+        try:
+          print(item['target_type'] +  " action : " + item["action_name"] + " : " + projects[item['project_id']] + " vers " + item['target_title'])
+        except:
+          print("Oups, erreur pour print")
+          print(item)
        # print(item)
 
   
   return activities
 
-def generate_report():
+def generate_report(curdate = None):
   """
   Genere un rapport html de l'activité git selon des conventions miist (branche feature/xxxx et commits.)
   """
-  nbweek = datetime.datetime.now().strftime("%V")
-  today = datetime.date.today()
+  if(not curdate or curdate is None):
+    curdate = datetime.date.today()
+  
+  nbweek = curdate.strftime("%V")
 
-  start_of_curweek = today + datetime.timedelta(days=-(today.weekday()))
-  start_of_curweek_for_gitlab = today + datetime.timedelta(days=-(today.weekday()+1))
-  end_of_curweek = today + datetime.timedelta(days=-(today.weekday()+1+2), weeks=1) 
+  start_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()))
+  start_of_curweek_for_gitlab = curdate + datetime.timedelta(days=-(curdate.weekday()+1))
+  end_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()+1+2), weeks=1) 
 
   name = "%s - CR Hebdomadaire MIIST semaine %s" % (WHOIS, nbweek)
   
   original="cr-template.html"
   target="cr-miist-%s-%s.html" % (WHOIS, nbweek)
+
+  if os.path.isfile(target):
+    return None, None
+
   shutil.copyfile(original, target)    
 
   # Read in the file
@@ -120,8 +131,7 @@ def generate_report():
   filedata = filedata.replace('{{end_semaine}}', end_semaine)
   filedata = filedata.replace('{{idx_semaine}}', nbweek)
 
-  projects = get_project_from_gitlab(start)
-  activities = get_activity_from_gitlab(projects, start, end)
+  activities = get_activity_from_gitlab(start, end)
 
   filedata = filedata.replace('{{activity}}', "\n".join(map(str, activities)))
 
@@ -188,5 +198,13 @@ def upload_to_gdrive(name, target):
     print('Upload to GDrive impossible. A verifier !')
 
 if __name__ == '__main__':
-    name, target = generate_report()
-    upload_to_gdrive(name, target)
+    
+    allreportofyear = int(datetime.date.today().strftime("%V"))
+    for i in range(allreportofyear):
+      lastweek = datetime.date.today() - datetime.timedelta(weeks=i)
+      print("Rapport semaine %s ------" % lastweek.strftime("%V"))
+      name, target =  generate_report(lastweek)
+      if name and target:
+        upload_to_gdrive(name, target)
+
+    
