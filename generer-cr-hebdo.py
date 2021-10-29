@@ -76,8 +76,11 @@ def get_activity_from_gitlab(start, end):
       if item["action_name"] == "pushed to" or item["action_name"] == "pushed new":
         pd = item["push_data"]        
         name = pd["ref"].replace("feature/", "").upper()
-        name = name.replace("MASTER", "Production").upper()
-        name = name.replace("DEV", "Intégration").upper()
+        if name == "MAIN":
+          continue
+        name = name.replace("MASTER", "Merge Git").upper()
+        if name == "DEV":
+          name = name.replace("DEV", "Merge Git").upper()
         a = get_activity_from_name(name, activities)
         mustappend = False
 
@@ -89,11 +92,12 @@ def get_activity_from_gitlab(start, end):
         commit_title = pd["commit_title"].capitalize()
         if("Merge remote-tracking branch" not in commit_title):
           item = "(%s) - %s" % (project_name, commit_title)
+          item = item.replace("feature/", "")
+          a.items.sort()
           if item not in a.items:
             a.items.append(item)
 
         if mustappend:
-          a.items.sort()
           activities.append(a)
       # TODO : gérer les merge request et faire une section dédiée
       else:
@@ -104,7 +108,7 @@ def get_activity_from_gitlab(start, end):
           print(item)
        
 
-  
+  activities.sort(key=lambda x: x.name)
   return activities
 
 def generate_report(curdate = None):
@@ -120,7 +124,7 @@ def generate_report(curdate = None):
 
   start_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()))
   start_of_curweek_for_gitlab = curdate + datetime.timedelta(days=-(curdate.weekday()+1))
-  end_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()+1+2), weeks=1) 
+  end_of_curweek = curdate + datetime.timedelta(days=-(curdate.weekday()-1), weeks=1) 
 
   name = "%s - CR Hebdomadaire MIIST semaine %s" % (WHOIS, nbweek)
   
