@@ -77,7 +77,7 @@ def get_activity_from_gitlab(start, end):
         pd = item["push_data"]        
         name = pd["ref"].replace("feature/", "").upper()
         if name == "MAIN":
-          continue
+          name = "DIVERS"
         name = name.replace("MASTER", "Merge Git").upper()
         if name == "DEV":
           name = name.replace("DEV", "Merge Git").upper()
@@ -88,10 +88,16 @@ def get_activity_from_gitlab(start, end):
           mustappend = True
           a = Activity()
           a.name = name
-          
-        commit_title = pd["commit_title"].capitalize()
+        
+        commit_title = pd["commit_title"]
+        if not commit_title:
+          commit_title = ""
+        commit_title = commit_title.capitalize()
         if("Merge remote-tracking branch" not in commit_title):
-          item = "(%s) - %s" % (project_name, commit_title)
+          if(project_name != "docs"):
+            item = "(%s) - %s" % (project_name, commit_title)
+          else:
+            item = "%s" % commit_title
           item = item.replace("feature/", "")
           a.items.sort()
           if item not in a.items:
